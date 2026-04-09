@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: fraud-api
+    runtime: docker
+    dockerfilePath: ./api/Dockerfile
+    healthCheckPath: /health
+    plan: free
+    autoDeploy: true
+    envVars:
+      - key: MODEL_VERSION
+        value: v1
+      - key: ARTIFACTS_DIR
+        value: /app/artifacts
+      - key: MODEL_PATH
+        value: /app/artifacts/fraud_model_v1.joblib
+      - key: MODEL_METADATA_PATH
+        value: /app/artifacts/fraud_model_v1.json
+
+  - type: web
+    name: fraud-frontend
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    plan: free
+    autoDeploy: true
+    envVars:
+      - key: API_BASE_URL
+        value: https://fraud-api.onrender.com
