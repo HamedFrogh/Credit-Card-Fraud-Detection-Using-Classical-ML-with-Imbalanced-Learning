@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import os
+import time
 from typing import Dict
 
 import pandas as pd
@@ -16,12 +17,31 @@ st.caption("Classical ML + Imbalanced Learning Inference UI")
 
 
 def get_model_info() -> Dict[str, object]:
+    last_exc: Exception | None = None
+    # Render free tier may cold-start; allow a few retries.
+    for attempt in range(3):
+        try:
+            resp = requests.get(f"{API_BASE_URL}/model-info", timeout=30)
+            resp.raise_for_status()
+            return resp.json()
+        except Exception as exc:
+            last_exc = exc
+            if attempt < 2:
+                time.sleep(3)
+
     try:
-        resp = requests.get(f"{API_BASE_URL}/model-info", timeout=8)
+        resp = requests.get(f"{API_BASE_URL}/health", timeout=15)
         resp.raise_for_status()
-        return resp.json()
+        st.warning("API is reachable but model-info is timing out. Retry in a few seconds.")
+        return {}
     except Exception as exc:
-        st.error(f"API unavailable: {exc}")
+        if last_exc is not None:
+            st.error(f"API unavailable: {last_exc}")
+        else:
+            st.error(f"API unavailable: {exc}")
+        st.info(
+            "Check `API_BASE_URL` in Render frontend environment settings and verify `/health` on the API service URL."
+        )
         return {}
 
 
